@@ -1,5 +1,6 @@
 package io.projet.web;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.springframework.http.StreamingHttpOutputMessage.Body;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,52 +35,43 @@ import io.projet.services.ProjectService;
 @RequestMapping("/api/project")
 public class ProjectController {
 
-	@Autowired
-	 private ProjectService projectservice;
-	
+    @Autowired
+    private ProjectService projectService;
+
     @Autowired
     private MapValidationErrorService mapValidationErrorService;
-	
-    @CrossOrigin(origins = "http://localhost:3000")
+
+
+
+
     @PostMapping("")
-	public ResponseEntity<?> createNewProjet(@Valid @RequestBody Project project, BindingResult result){
-		
-	
-    	
-    	ResponseEntity<?> errorMap = mapValidationErrorService.MapValidationService(result);
-    	if(errorMap!=null) return errorMap;
-    	
-		Project project1 = projectservice.saveOrUpdateProject(project);
-		return new ResponseEntity<Project>(project, HttpStatus.CREATED);
-	}
-    
-    @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/get/{projectId}")
-	public ResponseEntity<?> getProjectById(@PathVariable String projectId){
-		
-    	Project project = projectservice.findProjectByIdentifier(projectId);
-		
-    	
-    	return new ResponseEntity<Project>(project, HttpStatus.OK);
-		
-	}
-    
-   // @CrossOrigin(origins = "http://localhost:3000")
-   // @GetMapping("/delete/{projectId}")
-    @RequestMapping(value = "/delete/{projectId}", produces = {"application/json; charset=UTF-8"}, method = RequestMethod.GET)
-    @ResponseBody
-    		public Map<String, Object>  deleteProject(@PathVariable String projectId){
-    	
-				
-    	return  projectservice.deleteProjectByIdentifier(projectId); 
-    		}
-    
-    @CrossOrigin(origins = "http://localhost:3000")
-    @GetMapping("/all")
-    public Iterable<Project> getAllProject(){
-        
-        return  projectservice.findAllProject();
+    public ResponseEntity<?> createNewProject(@Valid @RequestBody Project project, BindingResult result, Principal principal){
+
+        ResponseEntity<?> errorMap = mapValidationErrorService.MapValidationService(result);
+        if(errorMap!=null) return errorMap;
+
+        Project project1 = projectService.saveOrUpdateProject(project, principal.getName());
+        return new ResponseEntity<Project>(project1, HttpStatus.CREATED);
     }
-    
-}
-   
+
+
+    @GetMapping("/{projectId}")
+    public ResponseEntity<?> getProjectById(@PathVariable String projectId, Principal principal){
+
+        Project project = projectService.findProjectByIdentifier(projectId, principal.getName());
+
+        return new ResponseEntity<Project>(project, HttpStatus.OK);
+    }
+
+
+    @GetMapping("/all")
+    public Iterable<Project> getAllProjects(Principal principal){return projectService.findAllProjects(principal.getName());}
+
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<?> deleteProject(@PathVariable String projectId, Principal principal){
+        projectService.deleteProjectByIdentifier(projectId, principal.getName());
+
+        return new ResponseEntity<String>("Project with ID: '"+projectId+"' was deleted", HttpStatus.OK);
+    }
+}  
